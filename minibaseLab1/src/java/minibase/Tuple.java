@@ -26,6 +26,11 @@ public class Tuple implements Serializable {
      */
     public Tuple(TupleDesc td) {
         // TODO: some code goes here
+        this.tupleDesc = td;
+        fieldVal = new ArrayList<Field>();
+        int numFields = tupleDesc.numFields();
+        for(int i=0;i<numFields;i++)
+            fieldVal.add(null);
     }
 
     /**
@@ -33,7 +38,7 @@ public class Tuple implements Serializable {
      */
     public TupleDesc getTupleDesc() {
         // TODO: some code goes here
-        return null;
+        return tupleDesc;
     }
 
     /**
@@ -65,6 +70,7 @@ public class Tuple implements Serializable {
      */
     public void setField(int i, Field f) {
         // TODO: some code goes here
+        fieldVal.set(i,f);
     }
 
     /**
@@ -75,7 +81,7 @@ public class Tuple implements Serializable {
      */
     public Field getField(int i) {
         // TODO: some code goes here
-        return null;
+        return fieldVal.get(i);
     }
 
     /**
@@ -88,7 +94,13 @@ public class Tuple implements Serializable {
      */
     public String toString() {
         // TODO: some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        String str="";
+        int numFields = tupleDesc.numFields();
+        for(int i=0;i<numFields-1;i++){
+            str = str + fieldVal.get(i) + "\t";
+        }
+        str = str + fieldVal.get(numFields-1) + "\n";
+        return str;
     }
     
     /**

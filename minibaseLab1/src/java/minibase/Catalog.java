@@ -20,12 +20,21 @@ public class Catalog {
     // hint1 : catalog class manages entire table info (DBFile dbFile, String name, String pkeyField), it will be easy if you manage thow infos in one class
     // hint2 : you need to get table info using table ID and you need to get table ID using table name. What data structure do you need?
 
+    public List<DbFile> fileList;
+    public List<String> fileNameList;
+    public List<Integer> fileIdList;
+    public List<String> pKeyFieldList;
+    
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
         // TODO: some code goes here
+        fileList = new ArrayList<DbFile>();
+        fileNameList = new ArrayList<String>();
+        fileIdList = new ArrayList<Integer>();
+        pKeyFieldList = new ArrayList<String>();
     }
 
     /**
@@ -39,6 +48,10 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // TODO: some code goes here
+        fileList.add(file);
+        fileNameList.add(name);
+        fileIdList.add(file.getId());
+        pKeyFieldList.add(pkeyField);
     }
 
     public void addTable(DbFile file, String name) {
@@ -62,7 +75,11 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // TODO: some code goes here
-        return 0;
+        if(!fileNameList.contains(name))
+            throw new NoSuchElementException();
+        
+        int index=fileNameList.indexOf(name);
+        return fileList.get(index).getId();
     }
 
     /**
@@ -73,7 +90,11 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // TODO: some code goes here
-        return null;
+        if(!fileIdList.contains(tableid))
+            throw new NoSuchElementException();
+           
+        int index = fileIdList.indexOf(tableid);
+        return fileList.get(index).getTupleDesc();
     }
 
     /**
@@ -84,12 +105,14 @@ public class Catalog {
      */
     public DbFile getDbFile(int tableid) throws NoSuchElementException {
         // TODO: some code goes here
-        return null;
+        int index = fileIdList.indexOf(tableid);
+        return fileList.get(index);
     }
 
     public String getPrimaryKey(int tableid) {
         // TODO: some code goes here
-        return null;
+        int index = fileIdList.indexOf(tableid);
+        return pKeyFieldList.get(index);
     }
 
     public Iterator<Integer> tableIdIterator() {
@@ -99,12 +122,17 @@ public class Catalog {
 
     public String getTableName(int id) {
         // TODO: some code goes here
-        return null;
+        int index = fileIdList.indexOf(id);
+        return fileNameList.get(index);
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // TODO: some code goes here
+        fileList.clear();
+        fileNameList.clear();
+        fileIdList.clear();
+        pKeyFieldList.clear();
     }
     
     /**

@@ -42,7 +42,7 @@ public class TupleDesc implements Serializable {
      * */
     public Iterator<TDItem> iterator() {
         // some code goes here
-        return null;
+        return fieldList.iterator();
     }
 
     private static final long serialVersionUID = 1L;
@@ -61,6 +61,11 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         // TODO: some code goes here
+        fieldList = new ArrayList<TDItem>();
+        int len = typeAr.length;
+        for(int i=0;i<len;i++){
+            fieldList.add(new TDItem(typeAr[i],fieldAr[i]));
+        }
     }
 
     /**
@@ -73,6 +78,11 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr) {
         // TODO: some code goes here
+        fieldList = new ArrayList<TDItem>();
+        int len = typeAr.length;
+        for(int i=0;i<len;i++){
+            fieldList.add(new TDItem(typeAr[i],null));
+        }
     }
 
     /**
@@ -80,7 +90,7 @@ public class TupleDesc implements Serializable {
      */
     public int numFields() {
         // TODO: some code goes here
-        return 0;
+        return fieldList.size();
     }
 
     /**
@@ -95,8 +105,12 @@ public class TupleDesc implements Serializable {
     public String getFieldName(int i) throws NoSuchElementException {
         // TODO: some code goes here, don't forget to check index range!
 	// + return "null" string for null case
-
-        return null;
+	    if(i<0 || i>= fieldList.size())
+	        throw new NoSuchElementException();
+	    
+	    if(fieldList.get(i).fieldName == null) return "null";
+	    else
+	        return fieldList.get(i).fieldName;
     }
 
     /**
@@ -111,7 +125,9 @@ public class TupleDesc implements Serializable {
      */
     public Type getFieldType(int i) throws NoSuchElementException {
         // TODO: some code goes here
-        return null;
+        if(i<0 || i>= fieldList.size())
+	        throw new NoSuchElementException();
+        return fieldList.get(i).fieldType;
     }
 
     /**
@@ -126,7 +142,14 @@ public class TupleDesc implements Serializable {
     public int fieldNameToIndex(String name) throws NoSuchElementException {
         // TODO: some code goes here
 	// hint! how to throw exception? refer hashCode() function in this class 
-        return 0;
+	    int index; String str;
+	    int num = fieldList.size();
+	    for(index=0;index<num;index++){
+	        str = fieldList.get(index).fieldName;
+	        if(str != null && name != null && name.equals(str))
+	            return index;
+	    }
+        throw new NoSuchElementException();
     }
 
     /**
@@ -135,7 +158,12 @@ public class TupleDesc implements Serializable {
      */
     public int getSize() {
         // TODO: some code goes here
-        return 0;
+        int size = 0;
+        int num = fieldList.size();
+        for(int i=0;i<num;i++){
+            size += fieldList.get(i).fieldType.getLen();
+        }
+        return size;
     }
 
     /**
@@ -150,7 +178,19 @@ public class TupleDesc implements Serializable {
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
         // TODO: some code goes here
-        return null;
+        int n1 = td1.numFields(); int n2 = td2.numFields();
+        Type[] typeAr = new Type[n1+n2];
+        String[] fieldAr = new String[n1+n2];
+        for(int i=0;i<n1;i++){
+            typeAr[i] = td1.getFieldType(i);
+            fieldAr[i] = td1.getFieldName(i);
+        }
+        for(int i=0;i<n2;i++){
+            typeAr[i+n1] = td2.getFieldType(i);
+            fieldAr[i+n1]= td2.getFieldName(i);
+        }
+        TupleDesc result = new TupleDesc(typeAr, fieldAr);
+        return result;
     }
 
     /**
@@ -168,8 +208,16 @@ public class TupleDesc implements Serializable {
 		return false;
 
 	// TODO: some code goes here
+	TupleDesc temp = (TupleDesc)o;
+	if(this.getSize() != temp.getSize())
+	    return false;
+	    
+	for(int i=0;i<temp.numFields();i++){
+	    if(this.getFieldType(i) != temp.getFieldType(i))
+	        return false;
+	}
 	
-        return false;
+        return true;
     }
 
     public int hashCode() {

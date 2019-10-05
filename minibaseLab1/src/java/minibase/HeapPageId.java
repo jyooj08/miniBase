@@ -2,6 +2,9 @@ package minibase;
 
 /** Unique identifier for HeapPage objects. */
 public class HeapPageId implements PageId {
+	
+	private int tableId;
+	private int pgNo;
 
     /**
      * Constructor. Create a page id structure for a specific page of a
@@ -12,12 +15,14 @@ public class HeapPageId implements PageId {
      */
     public HeapPageId(int tableId, int pgNo) {
         // TODO: some code goes here
+        this.tableId = tableId;
+        this.pgNo = pgNo;
     }
 
     /** @return the table associated with this PageId */
     public int getTableId() {
         // TODO: some code goes here
-        return 0;
+        return tableId;
     }
 
     /**
@@ -26,18 +31,19 @@ public class HeapPageId implements PageId {
      */
     public int pageNumber() {
         // TODO: some code goes here
-        return 0;
+        return pgNo;
     }
 
     /**
-     * @return a hash code for this page, represented by the concatenation of
+     * @return a hash code for this page, represented by the concatensation of
      *   the table number and the page number (needed if a PageId is used as a
      *   key in a hash table in the BufferPool, for example.)
      * @see BufferPool
      */
     public int hashCode() {
         // TODO: some code goes here, implement freeley
-        throw new UnsupportedOperationException("implement this");
+        String str = "" + tableId + pgNo;
+        return str.hashCode();
     }
 
     /**
@@ -49,7 +55,16 @@ public class HeapPageId implements PageId {
      */
     public boolean equals(Object o) {
         // TODO: some code goes here
-        return false;
+        if(!(o instanceof PageId))
+        	return false;
+        
+        PageId p = (PageId)o;
+        if(pgNo != p.pageNumber())
+        	return false;
+        if(tableId != p.getTableId())
+        	return false;
+        
+        return true;
     }
 
     /**

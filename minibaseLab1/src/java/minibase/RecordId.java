@@ -9,6 +9,9 @@ import java.io.Serializable;
 public class RecordId implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    
+    private PageId pid;
+    private int tupleno;
 
     /**
      * Creates a new RecordId referring to the specified PageId and tuple
@@ -21,6 +24,8 @@ public class RecordId implements Serializable {
      */
     public RecordId(PageId pid, int tupleno) {
         // TODO: some code goes here
+        this.pid = pid;
+        this.tupleno = tupleno;
     }
 
     /**
@@ -28,7 +33,7 @@ public class RecordId implements Serializable {
      */
     public int tupleno() {
         // TODO: some code goes here
-        return 0;
+        return tupleno;
     }
 
     /**
@@ -36,7 +41,7 @@ public class RecordId implements Serializable {
      */
     public PageId getPageId() {
         // TODO: some code goes here
-        return null;
+        return pid;
     }
 
     /**
@@ -48,7 +53,16 @@ public class RecordId implements Serializable {
     @Override
     public boolean equals(Object o) {
         // TODO: some code goes here
-        throw new UnsupportedOperationException("implement this");
+        if(!(o instanceof RecordId))
+        	return false;
+        	
+        RecordId tmp = (RecordId)o;
+        if(tmp.tupleno() != tupleno())
+        	return false;
+        if(tmp.getPageId() != getPageId())
+        	return false;
+        
+        return true;
     }
 
     /**
@@ -60,7 +74,7 @@ public class RecordId implements Serializable {
     @Override
     public int hashCode() {
         // TODO: some code goes here, there is no answer make this function freely. (But you should ensure different outputs for different recordID
-        throw new UnsupportedOperationException("implement this");
+        return tupleno()+ getPageId().hashCode();
 
     }
 

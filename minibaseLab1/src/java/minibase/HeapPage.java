@@ -2,6 +2,7 @@ package minibase;
 
 import java.util.*;
 import java.io.*;
+import java.lang.Math;
 
 /**
  * Each instance of HeapPage stores data for one page of HeapFiles and 
@@ -67,8 +68,8 @@ public class HeapPage implements Page {
     private int getNumTuples() {        
         // TODO: some code goes here
 	// hint!! See the formula in the assignment description PPT.
-
-        return 0;
+		int result = (int)Math.floor(BufferPool.PAGE_SIZE*8 / (td.getSize()*8+1));
+        return result;
 
     }
 
@@ -79,8 +80,8 @@ public class HeapPage implements Page {
     private int getHeaderSize() {        
         // TODO: some code goes here
 	// hint!! See the formula in the assignment description PPT.
-        
-        return 0;
+        int result = (int)Math.ceil(getNumTuples()/8);
+        return result;
                  
     }
     
@@ -106,7 +107,7 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
     	// TODO: some code goes here
-    	throw new UnsupportedOperationException("implement this");
+    	return pid;
     }
 
     /**
@@ -276,7 +277,15 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         // TODO: some code goes here
-        return 0;
+        int count=0;
+        int nt = getNumTuples();
+        
+        for(int i=0;i<nt;i++){
+        	if(!isSlotUsed(i))
+        		count++;
+        }
+        return count;
+
     }
 
     /**
@@ -284,7 +293,18 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // TODO: some code goes here
-        return false;
+        int location = i/8;
+        int offset=i%8;
+        int tmp = 1 << offset;
+        
+        if(location >= header.length || offset < 0)
+        	return false;
+        
+        if((header[location] & tmp) != 0)
+        	return true;
+        else 
+        	return false;
+        
     }
 
     /**
@@ -302,7 +322,13 @@ public class HeapPage implements Page {
     public Iterator<Tuple> iterator() {
         // TODO: some code goes here
 	// hint!! List provide iterator method
-        return null;
+		List<Tuple> tupleList = new ArrayList<Tuple>();
+		int len = tuples.length;
+		for(int i=0;i<len;i++){
+			if(isSlotUsed(i))
+				tupleList.add(tuples[i]);
+		}
+		return tupleList.iterator();
     }
 
 }

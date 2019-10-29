@@ -80,7 +80,7 @@ public class BufferPool {
      */
     public  void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
     /**
@@ -90,13 +90,13 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid) throws IOException {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
         return false;
     }
 
@@ -110,13 +110,13 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit)
         throws IOException {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
     /**
      * Add a tuple to the specified table behalf of transaction tid.  Will
      * acquire a write lock on the page the tuple is added to(Lock 
-     * acquisition is not needed for lab2). May block if the lock cannot 
+     * acquisition is not needed for lab3). May block if the lock cannot 
      * be acquired.
      * 
      * Marks any pages that were dirtied by the operation as dirty by calling
@@ -129,8 +129,9 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for proj1
+        // TODO: some code goes here
+	// hint: you also have to call insertTuple function of HeapFile,
+	// hint2: you don't have to consider about transaction ID write right now, (this maybe needed when implementing lab5 or lab6)
     }
 
     /**
@@ -148,8 +149,7 @@ public class BufferPool {
      */
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for proj1
+        // TODO: some code goes here
     }
 
     /**
@@ -159,8 +159,7 @@ public class BufferPool {
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
-        // not necessary for proj1
-
+        // not necessary for proj3
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -170,7 +169,7 @@ public class BufferPool {
     */
     public synchronized void discardPage(PageId pid) {
         // some code goes here
-	// not necessary for proj1
+	// not necessary for proj3
     }
 
     /**
@@ -179,14 +178,14 @@ public class BufferPool {
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
     /** Write all pages of the specified transaction to disk.
      */
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
     /**
@@ -195,7 +194,7 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        // not necessary for proj1
+        // not necessary for proj3
     }
 
 }

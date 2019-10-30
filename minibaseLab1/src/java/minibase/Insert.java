@@ -21,27 +21,45 @@ public class Insert extends Operator {
      *             if TupleDesc of child differs from table into which we are to
      *             insert.
      */
+    private TransactionId tid;
+    private DbIterator itr;
+    private int tableId; 
+    private TupleDesc td;
+    private boolean isInserted;
+    private BufferPool buf;
+    
     public Insert(TransactionId t,DbIterator child, int tableid)
             throws DbException {
         // TODO: some code goes here
+        this.tid=t;
+        this.itr=child;
+        this.tableId=tableid;
+        this.isInserted = false;
+        this.buf=Database.getBufferPool();
+        this.td = child.getTupleDesc();
     }
 
     public TupleDesc getTupleDesc() {
         // TODO: some code goes here
-        return null;
+        return td;
     }
 
     public void open() throws DbException, TransactionAbortedException {
         // TODO some code goes here
 	// hint: you have to consider parent class as well
+		super.open();
+		itr.open();
     }
 
     public void close() {
         // TODO: some code goes here
+        itr.close();
+        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // TODO: some code goes here
+        itr.rewind();
     }
 
     /**
@@ -60,18 +78,32 @@ public class Insert extends Operator {
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // TODO: some code goes here
 	// hint: insert Tuples passed by iterator (child) to Buffer.
-        return null;
+        if(isInserted) return null;
+        
+        int count=0;
+        while(itr.hasNext()){
+        	try{
+        		Tuple tuple = itr.next();
+        		buf.insertTuple(tid, tableId, tuple); 			
+    			count++;
+    		}catch(Exception e){}
+        }
+        Tuple result = new Tuple(td);
+        result.setField(0,new IntField(count));
+        isInserted=true;
+        return result;
     }
 
     @Override
     public DbIterator[] getChildren() {
         // TODO: some code goes here
 	// hint! there is only one element you can pass through DbIterator[]
-        return null;
+        return new DbIterator[] {itr};
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
         // TODO: some code goes here
+        itr = children[0];
     }
 }

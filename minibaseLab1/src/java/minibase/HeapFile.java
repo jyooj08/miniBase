@@ -89,8 +89,15 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
+    //lab3
     public void writePage(Page page) throws IOException {
         // TODO: some code goes here
+        RandomAccessFile f = new RandomAccessFile(this.file, "rw");
+        PageId pid = page.getId();
+        long position = pid.pageNumber()*BufferPool.PAGE_SIZE;
+        f.seek(position);
+        f.write(page.getPageData(),0,BufferPool.PAGE_SIZE);
+        f.close();
     }
 
     /**
@@ -103,17 +110,43 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
+    //lab3
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // TODO: some code goes here
-        return null;
+        ArrayList<Page> pageList = new ArrayList<Page>();
+        HeapPage hpage; HeapPageId pid; int np = numPages();
+        
+        for(int i=0;i<np;i++){
+        	pid = new HeapPageId(this.getId(), i);
+        	hpage = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY));
+        	
+        	if(hpage.getNumEmptySlots() > 0){
+        		hpage.insertTuple(t);
+        		pageList.add(hpage);
+        		break;
+        	}
+        }
+        
+        if(pageList.isEmpty()){
+            pid = new HeapPageId(this.getId(), np);
+            hpage = new HeapPage(pid, HeapPage.createEmptyPageData());
+            hpage.insertTuple(t);
+            this.writePage(hpage);
+            pageList.add(hpage);
+        }
+        return pageList;
     }
 
     // see DbFile.java for javadocs
+    //lab3
     public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // TODO: some code goes here
-        return null;
+        // TODO: some code goes here      
+        PageId pid = t.getRecordId().getPageId();
+        HeapPage hpage = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);     
+        hpage.deleteTuple(t);       
+        return hpage;
     }
 
     // see DbFile.java for javadocs

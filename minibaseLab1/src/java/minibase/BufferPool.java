@@ -25,6 +25,7 @@ public class BufferPool {
     // hint!! we need to match pid and page, So that we need additional data structure.
     private int NP;
     private HashMap<PageId, Page> buffer;
+    private HashMap<PageId, TransactionId> Lock;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -35,6 +36,7 @@ public class BufferPool {
         // TODO: some code goes here
         NP = numPages;
         buffer = new HashMap<PageId, Page>();
+        Lock = new HashMap<PageId, TransactionId>();
     }
 
     /**
@@ -81,6 +83,7 @@ public class BufferPool {
     public  void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for proj3
+        if(Lock.containsKey(pid)) Lock.remove(pid);
     }
 
     /**
@@ -91,13 +94,19 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for proj3
+        transactionComplete(tid, true);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for proj3
-        return false;
+        if(!Lock.containsKey(p))
+        	return false;
+        if(Lock.get(p) != tid)
+        	return false;
+        
+        return true;
     }
 
     /**
@@ -111,6 +120,26 @@ public class BufferPool {
         throws IOException {
         // some code goes here
         // not necessary for proj3
+        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
+        PageId pid;
+        if(commit){
+        	while(itr.hasNext()){
+        		pid = itr.next();
+        		if(buffer.get(pid)==tid) flushPage(pid);
+        	}
+        } else{
+        	while(itr.hasNext()){
+        		pid=itr.next();
+        		if(buffer.get(pid)==tid) discardPage(pid);
+        	}
+        }
+        
+        //release all locks associated to tid
+        itr = Lock.keySet().iterator();
+        while(itr.hasNext()){
+        	pid = itr.next();
+        	if(Lock.get(pid)==tid) Lock.remove(pid);
+        }
     }
 
     /**
@@ -132,6 +161,13 @@ public class BufferPool {
         // TODO: some code goes here
 	// hint: you also have to call insertTuple function of HeapFile,
 	// hint2: you don't have to consider about transaction ID write right now, (this maybe needed when implementing lab5 or lab6)
+		DbFile file = Database.getCatalog().getDbFile(tableId);
+		ArrayList<Page> pageList = file.insertTuple(tid,t);
+		Iterator itr = pageList.iterator();
+		while(itr.hasNext()){
+			Page page = (Page)itr.next();
+			buffer.put(page.getId(),page);
+		}
     }
 
     /**
@@ -147,9 +183,12 @@ public class BufferPool {
      * @param tid the transaction adding the tuple.
      * @param t the tuple to add
      */
-    public  void deleteTuple(TransactionId tid, Tuple t)
+    public void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
         // TODO: some code goes here
+        DbFile file = Database.getCatalog().getDbFile(t.getRecordId().getPageId().getTableId());
+        Page page = file.deleteTuple(tid,t);
+        buffer.put(page.getId(),page);
     }
 
     /**
@@ -160,6 +199,12 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for proj3
+        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
+        while(itr.hasNext()){
+        	PageId pid = itr.next();
+        	flushPage(pid);
+        }
+        	
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -170,6 +215,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
 	// not necessary for proj3
+		buffer.remove(pid);
     }
 
     /**
@@ -179,6 +225,18 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for proj3
+        DbFile file = Database.getCatalog().getDbFile(pid.getTableId());
+        if(!buffer.containsKey(pid)) return;
+        
+        Page page = buffer.get(pid);
+        TransactionId t = page.isDirty();
+        if(t == null) return;
+        
+        Database.getLogFile().logWrite(t, page.getBeforeImage(),page);
+        Database.getLogFile().force();
+        file.writePage(page);
+        page.setBeforeImage();
+        page.markDirty(false, null);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -186,6 +244,11 @@ public class BufferPool {
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for proj3
+        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
+        while(itr.hasNext()){
+        	PageId pid = itr.next();
+        	if(buffer.get(pid)==tid) flushPage(pid);
+        }
     }
 
     /**
@@ -195,6 +258,19 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for proj3
+        Iterator<PageId> itr = buffer.keySet().iterator();
+        while(itr.hasNext()){
+        	PageId pid = itr.next();
+        	if(buffer.get(pid).isDirty() != null) continue;
+        	
+        	try{
+        		flushPage(pid);
+        	} catch(Exception e) {}
+        	
+        	buffer.remove(pid);
+        	return;
+        }
+        throw new DbException("");
     }
 
 }

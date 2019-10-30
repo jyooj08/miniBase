@@ -57,11 +57,11 @@ public class RecordId implements Serializable {
         	return false;
         	
         RecordId tmp = (RecordId)o;
-        if(tmp.tupleno() != tupleno())
+        if(tmp.tupleno() != this.tupleno())
         	return false;
-        if(tmp.getPageId() != getPageId())
+        if(!this.getPageId().equals(tmp.getPageId()))
         	return false;
-        
+        	
         return true;
     }
 

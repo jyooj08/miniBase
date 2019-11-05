@@ -25,7 +25,7 @@ public class Insert extends Operator {
     private DbIterator itr;
     private int tableId; 
     private TupleDesc td;
-    private boolean isInserted;
+    private boolean isInserted; 
     private BufferPool buf;
     
     public Insert(TransactionId t,DbIterator child, int tableid)
@@ -36,7 +36,7 @@ public class Insert extends Operator {
         this.tableId=tableid;
         this.isInserted = false;
         this.buf=Database.getBufferPool();
-        this.td = child.getTupleDesc();
+        this.td = new TupleDesc(new Type[]{Type.INT_TYPE});
     }
 
     public TupleDesc getTupleDesc() {

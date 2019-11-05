@@ -74,6 +74,7 @@ public class SystemTestUtil {
                     columnValue = r.nextInt(maxValue);
                 }
                 tuple.add(columnValue);
+                
             }
             tuples.add(tuple);
         }
@@ -117,18 +118,18 @@ public class SystemTestUtil {
                 Debug.log("\t" + Utility.listToString(t));
             }
         }
-
         iterator.open();
         while (iterator.hasNext()) {
             Tuple t = iterator.next();
             ArrayList<Integer> list = tupleToList(t);
-            boolean isExpected = copy.remove(list);
+            boolean isExpected = copy.remove(list); 
             Debug.log("scanned tuple: %s (%s)", t, isExpected ? "expected" : "not expected");
             if (!isExpected) {
                 Assert.fail("expected tuples does not contain: " + t);
             }
         }
         iterator.close();
+
 
         if (!copy.isEmpty()) {
             String msg = "expected to find the following tuples:\n";
@@ -209,7 +210,7 @@ public class SystemTestUtil {
 	 * ret[0] is true if the sequence is linear
 	 * ret[1] is the constant of the sequence if ret[0] is true.
 	 * @param sequence
-	 * @return ret[0] = true if sequence is constant, ret[1] = the constant
+	 * @return ret[0] = true if sequence is constant, ret[1] = the 	constant
 	 */
 	public static Object[] checkConstant(double[] sequence) {
 		Object[] ret = new Object[2];

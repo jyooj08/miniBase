@@ -37,6 +37,7 @@ public class SeqScan implements DbIterator {
         this.tid=tid;
         this.tableId=tableid;
         this.tableAlias=tableAlias;
+        this.iterator=Database.getCatalog().getDbFile(tableId).iterator(tid);
     }
 
     /**
@@ -86,8 +87,6 @@ public class SeqScan implements DbIterator {
     public void open() throws DbException, TransactionAbortedException {
         // TODO: some code goes here
 	// hint! to implement sequential scan you need to access the Database Fil
-		DbFile file = Database.getCatalog().getDbFile(tableId);
-		iterator = file.iterator(tid);
 		iterator.open();
     }
 
@@ -103,6 +102,8 @@ public class SeqScan implements DbIterator {
     public TupleDesc getTupleDesc() {
         // TODO: some code goes here
         TupleDesc td = Database.getCatalog().getTupleDesc(tableId);
+        if(tableAlias.equals("")) return td;
+        
         int size = td.numFields();
         Type[] typeArr = new Type[size];
         String[] fieldNameArr = new String[size];

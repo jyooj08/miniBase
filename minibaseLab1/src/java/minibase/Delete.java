@@ -30,7 +30,7 @@ public class Delete extends Operator {
         this.itr=child;
         this.buf=Database.getBufferPool();
         isDeleted=false;
-        td = child.getTupleDesc();
+        td = new TupleDesc(new Type[]{Type.INT_TYPE});
     }
 
     public TupleDesc getTupleDesc() {

@@ -59,16 +59,14 @@ public class BufferPool {
         // TODO: some code goes here
 	// hint, reture value can't be null as if there is no matching page, we will add new page to the buffer pool.
         Page page = buffer.get(pid);
-        if(page == null){
-        	Page newPage = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
-        	buffer.put(pid, newPage);
-        	return newPage;
-        }
-        else
-        	return page;
-        	
+        if(page != null) return page;
+        
+        if(buffer.size() >= NP) evictPage();
+        
+        page = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
+        buffer.put(pid, page);
+        return page;        	
 
-	// + you don't need to implement eviction function for this lab
     }
 
     /**
@@ -166,6 +164,7 @@ public class BufferPool {
 		Iterator itr = pageList.iterator();
 		while(itr.hasNext()){
 			Page page = (Page)itr.next();
+			page.markDirty(true,tid);
 			buffer.put(page.getId(),page);
 		}
     }
@@ -186,8 +185,11 @@ public class BufferPool {
     public void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, TransactionAbortedException {
         // TODO: some code goes here
+        PageId pid = t.getRecordId().getPageId();
+        if(pid == null) throw new DbException("");
         DbFile file = Database.getCatalog().getDbFile(t.getRecordId().getPageId().getTableId());
         Page page = file.deleteTuple(tid,t);
+        page.markDirty(true,tid);
         buffer.put(page.getId(),page);
     }
 
@@ -202,7 +204,8 @@ public class BufferPool {
         Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
         while(itr.hasNext()){
         	PageId pid = itr.next();
-        	flushPage(pid);
+        	Page page = buffer.get(pid);
+        	if(page.isDirty() != null) flushPage(pid);
         }
         	
     }

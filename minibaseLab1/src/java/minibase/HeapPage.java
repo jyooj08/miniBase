@@ -82,7 +82,7 @@ public class HeapPage implements Page {
     private int getHeaderSize() {        
         // TODO: some code goes here
 	// hint!! See the formula in the assignment description PPT.
-        int result = (int)Math.ceil(getNumTuples()/8);
+        int result = (int)Math.ceil((double)getNumTuples()/8);
         return result;
                  
     }
@@ -270,6 +270,8 @@ public class HeapPage implements Page {
         // some code goes here
         // not necessary for lab1
         if (!t.getTupleDesc().equals(this.td))
+    		throw new DbException("");
+    	if(getNumEmptySlots()==0) 
     		throw new DbException("");
     	
     	int freeSlotNum = -1;

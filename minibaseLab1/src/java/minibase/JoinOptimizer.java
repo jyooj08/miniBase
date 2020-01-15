@@ -1,7 +1,6 @@
 package minibase;
 
 import java.util.*;
-
 import javax.swing.*;
 import javax.swing.tree.*;
 
@@ -111,7 +110,7 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops
             // join.
-            return -1.0;
+            return (double) cost1 + card1 * cost2 + card1 * card2;
         }
     }
 
@@ -156,7 +155,21 @@ public class JoinOptimizer {
             Map<String, Integer> tableAliasToId) {
         int card = 1;
         // some code goes here
-        return card <= 0 ? 1 : card;
+        if (joinOp == Predicate.Op.EQUALS || joinOp == Predicate.Op.NOT_EQUALS) {
+        	if (t1pkey && t2pkey) {
+        		card = (card1 > card2) ? card2 : card1;
+        	} else if (t1pkey && !t2pkey || card1 <= card2) {
+        		card = card2;
+        	} else if (!t1pkey && t2pkey || card1 > card2) {
+        		card = card1;
+        	}
+        } else {
+        	card = (int) (card1 * card2 * 0.3);
+        }
+        
+        if(card > 0) return card;
+        else return 1;
+        //return card <= 0 ? 1 : card;
     }
 
     /**
@@ -222,7 +235,40 @@ public class JoinOptimizer {
 
         // some code goes here
         //Replace the following
-        return joins;
+        PlanCache pc = new PlanCache();
+        int size = joins.size();
+
+        for(int i=1;i<=size;i++){
+        	Iterator<Set<LogicalJoinNode>> itr1 = enumerateSubsets(joins, i).iterator();
+        	
+            while(itr1.hasNext()){
+            	Set<LogicalJoinNode> set = itr1.next();
+                Vector<LogicalJoinNode> bestPlan = null; // TO_DO!!!
+                double tempBest = Double.MAX_VALUE;
+                int tempCard = 0;
+                Iterator<LogicalJoinNode> itr2 = set.iterator();
+                
+                while(itr2.hasNext()){
+                	LogicalJoinNode node = itr2.next();
+                    CostCard cc = computeCostAndCardOfSubplan(stats, filterSelectivities, node, set, tempBest, pc);
+                    if(cc != null){
+                        tempBest = cc.cost;
+                        bestPlan = cc.plan;
+                        tempCard = cc.card;
+                    }
+                }//itr2
+                
+                pc.addPlan(set, tempBest, tempCard, bestPlan);
+            }//itr1
+
+        }
+
+        Set<LogicalJoinNode> temp = new HashSet<LogicalJoinNode>();
+        Iterator<LogicalJoinNode> itr3 = joins.iterator();
+        while(itr3.hasNext()){
+            temp.add(itr3.next());
+        }
+        return pc.getOrder(temp);
     }
 
     // ===================== Private Methods =================================
@@ -553,3 +599,4 @@ public class JoinOptimizer {
     }
 
 }
+

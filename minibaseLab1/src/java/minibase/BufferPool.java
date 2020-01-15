@@ -25,7 +25,9 @@ public class BufferPool {
     // hint!! we need to match pid and page, So that we need additional data structure.
     private int NP;
     private HashMap<PageId, Page> buffer;
-    private HashMap<PageId, TransactionId> Lock;
+    //private LRUCache<PageId, Page> buffer;
+    private HashMap<TransactionId, Set<PageId>> pageTransactions;
+    private LockManager lockManager;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -36,7 +38,8 @@ public class BufferPool {
         // TODO: some code goes here
         NP = numPages;
         buffer = new HashMap<PageId, Page>();
-        Lock = new HashMap<PageId, TransactionId>();
+        pageTransactions = new HashMap<TransactionId, Set<PageId>>();
+        lockManager = new LockManager();
     }
 
     /**
@@ -58,13 +61,25 @@ public class BufferPool {
         throws TransactionAbortedException, DbException {
         // TODO: some code goes here
 	// hint, reture value can't be null as if there is no matching page, we will add new page to the buffer pool.
+	
+		lockManager.requestLock(tid,pid,perm);
+		
         Page page = buffer.get(pid);
-        if(page != null) return page;
+        if(page != null) {
+        	if(pageTransactions.get(tid) == null) 
+        		pageTransactions.put(tid, new HashSet<PageId>());
+        	pageTransactions.get(tid).add(pid);
+        	return page;
+        }
         
         if(buffer.size() >= NP) evictPage();
         
         page = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
         buffer.put(pid, page);
+        
+        if(pageTransactions.get(tid) == null) 
+        		pageTransactions.put(tid, new HashSet<PageId>());
+        	pageTransactions.get(tid).add(pid);
         return page;        	
 
     }
@@ -81,7 +96,7 @@ public class BufferPool {
     public  void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for proj3
-        if(Lock.containsKey(pid)) Lock.remove(pid);
+        lockManager.releaseLock(tid,pid);
     }
 
     /**
@@ -99,12 +114,7 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for proj3
-        if(!Lock.containsKey(p))
-        	return false;
-        if(Lock.get(p) != tid)
-        	return false;
-        
-        return true;
+        return lockManager.holdsLock(tid,p);
     }
 
     /**
@@ -118,26 +128,25 @@ public class BufferPool {
         throws IOException {
         // some code goes here
         // not necessary for proj3
-        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
-        PageId pid;
-        if(commit){
-        	while(itr.hasNext()){
-        		pid = itr.next();
-        		if(buffer.get(pid)==tid) flushPage(pid);
-        	}
-        } else{
-        	while(itr.hasNext()){
-        		pid=itr.next();
-        		if(buffer.get(pid)==tid) discardPage(pid);
-        	}
+        
+        if(!pageTransactions.containsKey(tid)){
+        	lockManager.releaseAllPages(tid);
+        	return;
         }
         
-        //release all locks associated to tid
-        itr = Lock.keySet().iterator();
+        Iterator itr = pageTransactions.get(tid).iterator();
         while(itr.hasNext()){
-        	pid = itr.next();
-        	if(Lock.get(pid)==tid) Lock.remove(pid);
+        	PageId pid = (PageId)itr.next();
+        	if(buffer.containsKey(pid) && buffer.get(pid).isDirty() == tid){
+        		if(commit) flushPage(pid);
+        		else{
+        			Page p = Database.getCatalog().getDbFile(pid.getTableId()).readPage(pid);
+        			buffer.put(pid,p);
+        		}
+        	}
         }
+        lockManager.releaseAllPages(tid);
+        pageTransactions.get(tid).clear();
     }
 
     /**
@@ -201,11 +210,14 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for proj3
-        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
-        while(itr.hasNext()){
-        	PageId pid = itr.next();
-        	Page page = buffer.get(pid);
-        	if(page.isDirty() != null) flushPage(pid);
+        Iterator itr1 = pageTransactions.keySet().iterator();
+        while(itr1.hasNext()){
+        	Iterator itr2= pageTransactions.get(itr1.next()).iterator();
+        	while(itr2.hasNext()){
+        		PageId pid = (PageId)itr2.next();
+        		Page page = buffer.get(pid);
+        		if(page.isDirty() != null) this.flushPage(page.getId());
+        	}
         }
         	
     }
@@ -229,17 +241,9 @@ public class BufferPool {
         // some code goes here
         // not necessary for proj3
         DbFile file = Database.getCatalog().getDbFile(pid.getTableId());
-        if(!buffer.containsKey(pid)) return;
-        
         Page page = buffer.get(pid);
-        TransactionId t = page.isDirty();
-        if(t == null) return;
-        
-        Database.getLogFile().logWrite(t, page.getBeforeImage(),page);
-        Database.getLogFile().force();
         file.writePage(page);
-        page.setBeforeImage();
-        page.markDirty(false, null);
+        buffer.get(pid).markDirty(false,null);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -247,10 +251,12 @@ public class BufferPool {
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for proj3
-        Iterator<PageId> itr = buffer.keySet().iterator(); //buffer? Lock?
+        Set<PageId> set = pageTransactions.get(tid);
+        Iterator itr = set.iterator();
         while(itr.hasNext()){
-        	PageId pid = itr.next();
-        	if(buffer.get(pid)==tid) flushPage(pid);
+        	PageId pid = (PageId)itr.next();
+        	if(buffer.containsKey(pid)) flushPage(pid);
+            lockManager.releaseLock(tid, pid);
         }
     }
 
@@ -261,19 +267,24 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for proj3
+        Page page=null;
         Iterator<PageId> itr = buffer.keySet().iterator();
         while(itr.hasNext()){
         	PageId pid = itr.next();
-        	if(buffer.get(pid).isDirty() != null) continue;
-        	
-        	try{
-        		flushPage(pid);
-        	} catch(Exception e) {}
-        	
-        	buffer.remove(pid);
-        	return;
+        	Page p = buffer.get(pid);
+        	if(p.isDirty() == null){
+        		buffer.remove(pid);
+        		page = p;
+        		break;
+        	}
         }
-        throw new DbException("");
-    }
+        
+        try{
+        	if(page == null)
+       	 		throw new DbException("");
+        	if(page.isDirty() != null) flushPage(page.getId());
+        	lockManager.removePage(page.getId());
+        } catch(Exception e){}
 
+	}
 }

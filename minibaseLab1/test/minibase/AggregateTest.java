@@ -87,7 +87,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void getTupleDesc() {
     Aggregate op = new Aggregate(scan1, 0, 0,
-        Aggregator.Op.MIN);
+        Aggregator.Op.MIN); // IntegerAggregator
     TupleDesc expected = Utility.getTupleDesc(2);
     TupleDesc actual = op.getTupleDesc();
     assertEquals(expected, actual);
@@ -98,7 +98,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void rewind() throws Exception {
     Aggregate op = new Aggregate(scan1, 1, 0,
-        Aggregator.Op.MIN);
+        Aggregator.Op.MIN); // IntegerAggregator
     op.open();
     while (op.hasNext()) {
       assertNotNull(op.next());
@@ -115,7 +115,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void countStringAggregate() throws Exception {
     Aggregate op = new Aggregate(scan2, 1, 0,
-        Aggregator.Op.COUNT);
+        Aggregator.Op.COUNT); // StringAggregator
     op.open();
     count.open();
     TestUtil.matchAllTuples(count, op);
@@ -126,7 +126,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void sumStringGroupBy() throws Exception {
     Aggregate op = new Aggregate(scan3, 1, 0,
-        Aggregator.Op.SUM);
+        Aggregator.Op.SUM); //IntegerAggregator
     op.open();
     sumstring.open();
     TestUtil.matchAllTuples(sumstring, op);
@@ -137,7 +137,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void sumAggregate() throws Exception {
     Aggregate op = new Aggregate(scan1, 1, 0,
-        Aggregator.Op.SUM);
+        Aggregator.Op.SUM); // IntegerAggregator
     op.open();
     sum.open();
     TestUtil.matchAllTuples(sum, op);
@@ -148,7 +148,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void avgAggregate() throws Exception {
     Aggregate op = new Aggregate(scan1, 1, 0,
-       Aggregator.Op.AVG);
+       Aggregator.Op.AVG); // IntegerAggregator
     op.open();
     avg.open();
     TestUtil.matchAllTuples(avg, op);
@@ -159,7 +159,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void maxAggregate() throws Exception {
     Aggregate op = new Aggregate(scan1, 1, 0,
-        Aggregator.Op.MAX);
+        Aggregator.Op.MAX); // IntegerAggregator
     op.open();
     max.open();
     TestUtil.matchAllTuples(max, op);
@@ -170,7 +170,7 @@ public class AggregateTest extends MiniBaseTestBase {
    */
   @Test public void minAggregate() throws Exception {
     Aggregate op = new Aggregate(scan1, 1, 0,
-       Aggregator.Op.MIN);
+       Aggregator.Op.MIN); //IntegerAggregator
     op.open();
     min.open();
     TestUtil.matchAllTuples(min, op);

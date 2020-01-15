@@ -1,11 +1,19 @@
 package minibase;
 
+import java.util.*;
+
 /**
  * Knows how to compute some aggregate over a set of IntFields.
  */
 public class IntegerAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+    
+    private int gbfield, afield;
+    private Type gbfieldtype;
+    private Op op;
+    private HashMap<Field, Integer> aggregateData;
+    private HashMap<Field, Integer> count;
 
     /**
      * Aggregate constructor
@@ -24,6 +32,12 @@ public class IntegerAggregator implements Aggregator {
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldtype = gbfieldtype;
+        this.afield = afield;
+        this.op = what;
+        this.aggregateData = new HashMap<Field, Integer>();
+        this.count = new HashMap<Field, Integer>();
     }
 
     /**
@@ -35,6 +49,45 @@ public class IntegerAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        Field f = null;
+        if(gbfield != Aggregator.NO_GROUPING) f = tup.getField(gbfield);
+        if(!aggregateData.containsKey(f)){
+        	switch(op){
+        		case MIN: 
+        			aggregateData.put(f,Integer.MAX_VALUE); break;
+        		case MAX:
+        			aggregateData.put(f,Integer.MIN_VALUE); break;
+        		case SUM:
+        		case COUNT:
+        		case AVG:
+        			aggregateData.put(f,0); break;
+        		default:
+        			aggregateData.put(f,0); break;
+        	}
+        	count.put(f,0);
+        }
+        
+        int tupleValue = ((IntField)tup.getField(afield)).getValue();
+        int currentValue = aggregateData.get(f);
+        int currentCount = count.get(f);
+        int newValue = currentValue;
+        
+        switch(op){
+        	case MIN:
+        		if(tupleValue <= currentValue) newValue = tupleValue; break;
+        	case MAX:
+        		if(tupleValue >= currentValue) newValue = tupleValue; break;
+        	case SUM:
+        	case AVG:
+        		count.put(f, currentCount+1);
+        		newValue = currentValue+tupleValue;
+        		break;
+        	case COUNT:
+        		newValue = currentValue +1; break;
+        	default: break;
+        }
+        
+        aggregateData.put(f,newValue);
     }
 
     /**
@@ -47,8 +100,57 @@ public class IntegerAggregator implements Aggregator {
      */
     public DbIterator iterator() {
         // some code goes here
-        throw new
-        UnsupportedOperationException("please implement me for proj2");
+        ArrayList<Tuple> tuples = new ArrayList<Tuple>();
+        TupleDesc td; String[] names; Type[] types;
+        Tuple t;
+        
+        
+        if(gbfield == Aggregator.NO_GROUPING){
+        	names = new String[] {"aggregateValue"};
+        	types = new Type[] {Type.INT_TYPE};
+        	td = new TupleDesc(types,names);
+        	
+        	Iterator itr = aggregateData.keySet().iterator();
+        	while(itr.hasNext()){
+        		Field group = (Field)itr.next();
+        		int aggregateVal;
+        		
+        		if(op == Op.AVG)
+        			aggregateVal = aggregateData.get(group) / count.get(group);
+        		else
+        			aggregateVal = aggregateData.get(group);
+        		
+        		t = new Tuple(td);
+        		t.setField(0, new IntField(aggregateVal));
+        		tuples.add(t);
+        	}
+        	
+        } else {
+        	names = new String[] {"groupValue","aggregateValue"};
+        	types = new Type[] {gbfieldtype, Type.INT_TYPE};
+        	td = new TupleDesc(types,names);
+        	
+        	Iterator itr = aggregateData.keySet().iterator();
+        	while(itr.hasNext()){
+        		Field group = (Field)itr.next();
+        		int aggregateVal;
+        		
+        		if(op == Op.AVG)
+        			aggregateVal = aggregateData.get(group) / count.get(group);
+        		else
+        			aggregateVal = aggregateData.get(group);
+        		
+        		t = new Tuple(td);
+        		t.setField(0,group);
+        		t.setField(1, new IntField(aggregateVal));
+        		tuples.add(t);
+        	}
+        }
+        
+        
+        
+        
+        return new TupleIterator(td, tuples);
     }
 
 }

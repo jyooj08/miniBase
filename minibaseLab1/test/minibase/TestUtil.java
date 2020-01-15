@@ -129,24 +129,30 @@ public class TestUtil {
             DbException, TransactionAbortedException {
         // TODO(ghuo): this n^2 set comparison is kind of dumb, but we haven't
         // implemented hashCode or equals for tuples.
+        
         boolean matched = false;
         while (expected.hasNext()) {
             Tuple expectedTup = expected.next();
             matched = false;
             actual.rewind();
 
+			//System.out.print("expected: "+expectedTup);
             while (actual.hasNext()) {
                 Tuple next = actual.next();
                 if (compareTuples(expectedTup, next)) {
                     matched = true;
+                    //System.out.println(" actual: "+next);
                     break;
                 }
             }
+            
 
             if (!matched) {
+            	//System.out.println("throw exception");
                 throw new RuntimeException("expected tuple not found: " + expectedTup);
             }
         }
+        
     }
 
     /**

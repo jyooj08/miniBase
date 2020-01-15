@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Vector;
 
 /**
  * TableStats represents statistics (e.g., histograms) about base tables in a
@@ -16,6 +17,12 @@ public class TableStats {
     private static final ConcurrentHashMap<String, TableStats> statsMap = new ConcurrentHashMap<String, TableStats>();
 
     static final int IOCOSTPERPAGE = 1000;
+    
+    private TupleDesc td;
+    private Vector<Object> histograms;
+    private int numtuples;
+    private int ioCostPerPage;
+    private int tableid;
 
     public static TableStats getTableStats(String tablename) {
         return statsMap.get(tablename);
@@ -85,6 +92,66 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+        
+        this.tableid = tableid;
+        this.td = Database.getCatalog().getTupleDesc(tableid);
+        this.numtuples = 0;
+        this.histograms = new Vector<Object>();
+        this.ioCostPerPage = ioCostPerPage;
+        
+        //get numtuples
+        SeqScan ss = new SeqScan(null, tableid, "TableStats");
+        try{
+        	ss.open();
+        	while(ss.hasNext()){
+        		ss.next();
+        		numtuples++;
+        	}
+        	ss.close();
+        } catch(Exception e){}
+        
+        int args = td.numFields();
+        for(int i=0;i<args;i++){
+        	if(td.getFieldType(i) == Type.INT_TYPE){ // int histogram
+        		int min=0, max=0;
+        		Aggregate minAggr = new Aggregate(ss, i, -1, Aggregator.Op.MIN);
+        		try{
+        			minAggr.open();
+        			if(minAggr.hasNext())
+        				min = ((IntField)minAggr.next().getField(0)).getValue();
+        			minAggr.close();
+        		} catch (Exception e){}
+        		
+        		Aggregate maxAggr = new Aggregate(ss, i, -1, Aggregator.Op.MAX);
+        		try{
+        			maxAggr.open();
+        			if(maxAggr.hasNext())
+        				max = ((IntField)maxAggr.next().getField(0)).getValue();
+        			maxAggr.close();
+        		} catch (Exception e){}
+
+        		IntHistogram hist = new IntHistogram(NUM_HIST_BINS, min, max);
+        		try{
+        			ss.open();
+        			while(ss.hasNext()) 
+        				hist.addValue(((IntField)ss.next().getField(i)).getValue());
+        			ss.close();
+        		} catch(Exception e) {}
+        		histograms.add(hist);
+        		
+        	} else { // string histogram
+        		StringHistogram hist = new StringHistogram(NUM_HIST_BINS);
+        		try{
+        			ss.open();
+        			while(ss.hasNext())
+        				hist.addValue(((StringField)ss.next().getField(i)).getValue());
+        			ss.close();
+        		} catch (Exception e) {}
+        		histograms.add(hist);
+        	}
+        	
+        	
+        }
     }
 
     /**
@@ -101,7 +168,8 @@ public class TableStats {
      */
     public double estimateScanCost() {
         // some code goes here
-        return 0;
+        double numpages = ((HeapFile)Database.getCatalog().getDbFile(this.tableid)).numPages();
+        return numpages*(double)ioCostPerPage;
     }
 
     /**
@@ -115,7 +183,7 @@ public class TableStats {
      */
     public int estimateTableCardinality(double selectivityFactor) {
         // some code goes here
-        return 0;
+        return (int) (selectivityFactor*numtuples);
     }
 
     /**
@@ -130,7 +198,14 @@ public class TableStats {
      * */
     public double avgSelectivity(int field, Predicate.Op op) {
         // some code goes here
-        return 1.0;
+        Object o = histograms.get(field);
+        if(o instanceof StringHistogram){ 
+        	StringHistogram hist = (StringHistogram)o;
+        	return hist.avgSelectivity();
+        } else{
+        	IntHistogram hist = (IntHistogram)o;
+        	return hist.avgSelectivity();
+        }
     }
 
     /**
@@ -148,7 +223,14 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // some code goes here
-        return 1.0;
+        Object o = histograms.get(field);
+        if(o instanceof StringHistogram){
+        	StringHistogram hist = (StringHistogram)o;
+        	return hist.estimateSelectivity(op, ((StringField)constant).getValue());
+        } else{
+        	IntHistogram hist = (IntHistogram)o;
+        	return hist.estimateSelectivity(op, ((IntField)constant).getValue());
+        }
     }
 
     /**
@@ -156,7 +238,7 @@ public class TableStats {
      * */
     public int totalTuples() {
         // some code goes here
-        return 0;
+        return numtuples;
     }
 
 }
